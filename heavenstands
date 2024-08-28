@@ -1,0 +1,52 @@
+-- This script implements a teleporting functionality with a toggle button UI.
+
+local function Teleport_to_Box()
+  -- This function finds a "Base" part in the Map and teleports the player there.
+
+  for i, v in next, game.Workspace.Map.itemSpawnner:GetDescendants() do
+    if v.Name == "Base" and v:IsA("BasePart") and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+      game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.CFrame
+      wait(0.1)
+      game:GetService("VirtualInputManager"):SendKeyEvent(true, "E", false, game)
+    end
+  end
+end
+
+-- Initialize a default toggle state (on)
+getgenv().Toggle = true
+
+-- Load the DrRay UI Library and create the UI window
+local DrRayLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/AZYsGithub/DrRay-UI-Library/main/DrRay.lua"))()
+local window = DrRayLibrary:Load("Autoboxes", "Default")
+local tab = DrRayLibrary.newTab("snorlax", "ImageIdHere")
+
+-- Create a toggle button with proper colon placement
+local toggleState = true
+tab.newToggle("Autoboxes", "Toggle! (prints the state)", true, function(newState)
+  toggleState = newState
+
+  if toggleState then
+    print("Autoboxes on")
+  else
+    print("Off")
+  end
+end)
+
+-- Main loop for checking toggle state and performing teleport
+while true do
+  if toggleState then
+    Teleport_to_Box()
+    wait(3)
+  end
+  wait(0.1) -- Yield to avoid busy waiting
+end
+--Variables
+local mobs = {}
+getgenv().mobs= nil
+for _,v in pairs(Game:GetService("ReplicatedStorage").Resources:Getchildren()) do
+  if v:isA("Model") then table.insert (mobs,v.name)
+  end
+end
+  for _,mobName in pairs (mobs) do
+    print(mobName)  
+    end
