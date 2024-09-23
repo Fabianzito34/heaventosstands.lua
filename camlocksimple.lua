@@ -1,6 +1,4 @@
--- Camlock Script for Roblox with Prediction, Smoothness, and Movable Persistent "snorlax.lol" Button
--- This script locks the camera onto a target player's character.
--- It includes prediction, smooth movement, and the button stays on screen after death and can be dragged.
+-- Camlock Script for Roblox with Prediction, Smoothness, Movable Persistent "snorlax.lol" Button, and ESP with Health & Armor Indicators
 
 -- Variables
 local camlockEnabled = false
@@ -32,41 +30,48 @@ Button.TextScaled = true
 Button.Draggable = true -- Make sure the button is draggable
 Button.Active = true -- Set the button to active to ensure proper dragging
 
--- Detect when the player starts dragging the button
-Button.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local startPos = Button.Position
-        local dragStart = input.Position
+-- Variables to store ESP elements
+local espBox = nil
+local healthLabel = nil
+local armorLabel = nil
 
-        local function update(input)
-            local delta = input.Position - dragStart
-            Button.Position = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
-            )
-        end
+-- Function to create ESP for the camlock target
+local function createESP(target)
+    if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        -- Create the ESP box
+        espBox = Instance.new("BoxHandleAdornment")
+        espBox.Name = "ESP"
+        espBox.Adornee = target.Character.HumanoidRootPart
+        espBox.Size = Vector3.new(4, 6, 0)
+        espBox.Transparency = 0.5
+        espBox.Color3 = Color3.fromRGB(255, 0, 0)
+        espBox.AlwaysOnTop = true
+        espBox.ZIndex = 10
+        espBox.Parent = camera
 
-        local moveConnection
-        local releaseConnection
+        -- Create health indicator
+        healthLabel = Instance.new("BillboardGui", target.Character.HumanoidRootPart)
+        healthLabel.Size = UDim2.new(0, 100, 0, 40)
+        healthLabel.Adornee = target.Character.HumanoidRootPart
+        healthLabel.StudsOffset = Vector3.new(0, 4, 0)
 
-        -- Listen for dragging movement
-        moveConnection = userInput.InputChanged:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseMovement then
-                update(input)
-            end
-        end)
+        local healthText = Instance.new("TextLabel", healthLabel)
+        healthText.Size = UDim2.new(1, 0, 1, 0)
+        healthText.BackgroundTransparency = 1
+        healthText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        healthText.TextScaled = true
+        healthText.Text = "Health: " .. tostring(target.Character:FindFirstChild("Humanoid").Health)
 
-        -- Stop dragging when the mouse button is released
-        releaseConnection = userInput.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                moveConnection:Disconnect()
-                releaseConnection:Disconnect()
-            end
-        end)
+        
     end
-end)
+end
+
+-- Function to remove ESP elements
+local function removeESP()
+    if espBox then espBox:Destroy() end
+    if healthLabel then healthLabel:Destroy() end
+    if armorLabel then armorLabel:Destroy() end
+end
 
 -- Function to get the target player
 local function getTarget()
@@ -99,7 +104,7 @@ local function predictTargetPosition(target)
     return nil
 end
 
--- Main function to lock the camera with smooth transitions
+-- Main function to lock the camera with smooth transitions and ESP
 local function lockCamera()
     if camlockEnabled and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local predictedPosition = predictTargetPosition(targetPlayer)
@@ -108,6 +113,12 @@ local function lockCamera()
             local targetCFrame = CFrame.new(camera.CFrame.Position, predictedPosition)
             -- Smoothly transition the camera to the predicted target position
             camera.CFrame = currentCFrame:Lerp(targetCFrame, smoothness)
+
+            -- Update health and armor indicators
+            if targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") then
+                healthLabel.TextLabel.Text = "Health: " .. tostring(math.floor(targetPlayer.Character.Humanoid.Health))
+                armorLabel.TextLabel.Text = "Armor: " .. tostring(math.floor(targetPlayer.Character.Humanoid.MaxHealth))
+            end
         end
     end
 end
@@ -118,10 +129,14 @@ Button.MouseButton1Click:Connect(function()
     
     if camlockEnabled then
         targetPlayer = getTarget()
+        if targetPlayer then
+            createESP(targetPlayer)
+        end
         Button.Text = "Camlock ON"
         print("Camlock Enabled on:", targetPlayer and targetPlayer.Name or "No Target")
     else
         targetPlayer = nil
+        removeESP()
         Button.Text = "snorlax.lol"
         print("Camlock Disabled")
     end
